@@ -2,10 +2,10 @@
 
 ## Project Summary
 
-**Project Name:** [Your Project Name]
-**CivicTechWR Season:** [Season X]
-**Project Duration:** [Start Date] - [End Date]
-**Demo Day:** [Date]
+**Project Name:** Union Coop
+**CivicTechWR Season:** Season X
+**Project Duration:** 2025-9-10 - 2025-12-10
+**Demo Day:** 2025-12-10
 
 ### One-Line Description
 

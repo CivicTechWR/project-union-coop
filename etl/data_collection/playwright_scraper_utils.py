@@ -6,6 +6,7 @@ Optimized for parallel business registry searches.
 import asyncio
 import os
 import time
+import random
 from playwright.async_api import async_playwright, Page, Browser, BrowserContext
 from typing import Optional, List, Dict
 import concurrent.futures
@@ -60,6 +61,10 @@ class ConcurrentPlaywrightScraper:
             browser = await self.playwright.chromium.launch(
                 headless=self.headless,
                 args=[
+                    '--disable-blink-features=AutomationControlled',
+                    '--disable-infobars',
+                    '--exclude-switches=enable-automation',
+                    '--use-fake-ui-for-media-stream',
                     '--disable-dev-shm-usage',
                     '--disable-extensions',
                     '--disable-gpu',
@@ -80,6 +85,18 @@ class ConcurrentPlaywrightScraper:
                     viewport={'width': 1920, 'height': 1080},
                     user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
                 )
+                # Apply manual stealth scripts
+                await context.add_init_script("""
+                    Object.defineProperty(navigator, 'webdriver', {
+                        get: () => undefined
+                    });
+                    Object.defineProperty(navigator, 'plugins', {
+                        get: () => [1, 2, 3, 4, 5]
+                    });
+                    Object.defineProperty(navigator, 'languages', {
+                        get: () => ['en-US', 'en']
+                    });
+                """)
                 self.context_pool.append(context)
         
         print(f"Initialized {len(self.browser_pool)} browsers with {len(self.context_pool)} contexts")
@@ -107,6 +124,32 @@ class ConcurrentPlaywrightScraper:
         # In production, you might want more sophisticated load balancing
         context_index = len(self.context_pool) % len(self.context_pool) if self.context_pool else 0
         return self.context_pool[context_index]
+
+    async def human_type(self, page: Page, selector: str, text: str, delay_min: int = 30, delay_max: int = 100):
+        """Simulate human typing with variable delays."""
+        await page.focus(selector)
+        for char in text:
+            await page.keyboard.type(char)
+            await asyncio.sleep(random.uniform(delay_min, delay_max) / 1000)
+
+    async def human_click(self, page: Page, selector: str):
+        """Simulate human click with mouse movement."""
+        try:
+            box = await page.locator(selector).bounding_box()
+            if box:
+                # Move to random position within the element
+                x = box['x'] + box['width'] * random.uniform(0.1, 0.9)
+                y = box['y'] + box['height'] * random.uniform(0.1, 0.9)
+                await page.mouse.move(x, y, steps=random.randint(5, 15))
+                await asyncio.sleep(random.uniform(0.1, 0.3))
+                await page.mouse.down()
+                await asyncio.sleep(random.uniform(0.05, 0.15))
+                await page.mouse.up()
+            else:
+                # Fallback if bounding box not found
+                await page.click(selector)
+        except Exception:
+             await page.click(selector)
     
     async def search_business_optimized(self, business_name: str, context_id: int = 0) -> SearchResult:
         """
@@ -134,14 +177,14 @@ class ConcurrentPlaywrightScraper:
                     
                     # Quick cookie handling
                     try:
-                        await page.click("button:has-text('Accept all')", timeout=2000)
+                        await self.human_click(page, "button:has-text('Accept all')")
                         await asyncio.sleep(0.5)
                     except:
                         pass  # Cookie banner might not be present
                     
                     # Fill search box
                     await page.wait_for_selector("#QueryString", timeout=10000)
-                    await page.fill("#QueryString", business_name)
+                    await self.human_type(page, "#QueryString", business_name)
                     
                     # Try different search button selectors (same as web_scraper_playwright.py)
                     search_button_selectors = [
@@ -159,7 +202,7 @@ class ConcurrentPlaywrightScraper:
                         try:
                             button = page.locator(selector)
                             if await button.count() > 0:
-                                await button.click(timeout=5000)
+                                await self.human_click(page, selector)
                                 print(f"[Context {context_id}] Search button clicked using {selector}")
                                 search_clicked = True
                                 break

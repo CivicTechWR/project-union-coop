@@ -1,4 +1,4 @@
-# [Project Name] - CivicTechWR Season X
+# Union Coop - CivicTechWR Season X
 
 > **🏠 Project Wiki Home** - Central hub for project documentation, community resources, and collaboration information.
 
@@ -39,8 +39,8 @@
 
 ## Current Status
 
-**Season Progress:** Week [X] of 12
-**Current Phase:** [Pitch/Breakout/Development/Testing/Demo Prep/Demo Day]
+**Season Progress:** Week [11] of 12
+**Current Phase:** [Demo Prep/Demo Day]
 
 ## Quick Links
 
