@@ -1,4 +1,6 @@
 """
+DEPRECATED SCRIPT. NEW VERSION AVAILABLE AT: even_better_scraper.py 
+
 Concurrent Playwright scraper for Non-Profit Corporations.
 Refactored to use a single persistent session per Business Type.
 Flow:
@@ -57,8 +59,18 @@ class FilteredConcurrentScraper(ConcurrentPlaywrightScraper):
                 headless=self.headless,
                 args=[
                     '--disable-blink-features=AutomationControlled',
-                    '--start-maximized',
-                    '--no-default-browser-check'
+                    '--disable-infobars',
+                    '--exclude-switches=enable-automation',
+                    '--use-fake-ui-for-media-stream',
+                    '--disable-dev-shm-usage',
+                    '--disable-extensions',
+                    '--disable-gpu',
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-web-security',
+                    '--disable-background-networking',
+                    '--disable-default-apps',
+                    '--disable-sync',
                 ]
             )
             self.browser_pool.append(browser)
@@ -75,10 +87,16 @@ class FilteredConcurrentScraper(ConcurrentPlaywrightScraper):
                     timezone_id='America/Toronto'
                 )
                 
-                # Apply stealth scripts to every context
+                # Apply manual stealth scripts to every context
                 await context.add_init_script("""
                     Object.defineProperty(navigator, 'webdriver', {
                         get: () => undefined
+                    });
+                    Object.defineProperty(navigator, 'plugins', {
+                        get: () => [1, 2, 3, 4, 5]
+                    });
+                    Object.defineProperty(navigator, 'languages', {
+                        get: () => ['en-US', 'en']
                     });
                 """)
                 
@@ -123,7 +141,7 @@ class FilteredConcurrentScraper(ConcurrentPlaywrightScraper):
             # Cookie handling
             try:
                 if await page.query_selector("button:has-text('Accept all')"):
-                    await page.click("button:has-text('Accept all')", timeout=2000)
+                    await self.human_click(page, "button:has-text('Accept all')")
             except:
                 pass
 
@@ -133,7 +151,7 @@ class FilteredConcurrentScraper(ConcurrentPlaywrightScraper):
                 advanced_clicked = False
                 for selector in ["#expandonodeW297", "text=Advanced", ".advanced-search-toggle"]:
                     if await page.query_selector(selector):
-                        await page.click(selector, timeout=2000)
+                        await self.human_click(page, selector)
                         advanced_clicked = True
                         await asyncio.sleep(1.0)
                         break
@@ -201,13 +219,13 @@ class FilteredConcurrentScraper(ConcurrentPlaywrightScraper):
                     
                     # Enter Letter
                     print(f"[Context {context_id}] Searching: '{letter}'")
-                    await page.fill("#QueryString", letter)
+                    await self.human_type(page, "#QueryString", letter)
                     
                     # Click Search
                     if await page.query_selector("#nodeW303"):
-                        await page.click("#nodeW303")
+                        await self.human_click(page, "#nodeW303")
                     else:
-                        await page.click("button:has-text('Search')")
+                        await self.human_click(page, "button:has-text('Search')")
                     
                     # Wait for page to load after clicking search
                     print(f"[Context {context_id}] ⏳ Waiting for page to load...")
